@@ -346,7 +346,7 @@ func (l PackageMetaList) FilterProviderPlatformExactVersion(provider addrs.Provi
 	return ret
 }
 
-// VersionConstraintsString returns a UI-oriented string representation of
+// VersionConstraintsString returns a canonical string representation of
 // a VersionConstraints value.
 func VersionConstraintsString(spec VersionConstraints) string {
 	// (we have our own function for this because the upstream versions
@@ -355,6 +355,12 @@ func VersionConstraintsString(spec VersionConstraints) string {
 	// function to do this later, but having this in here avoids blocking on
 	// that and this is the sort of thing that is unlikely to need ongoing
 	// maintenance because the version constraint syntax is unlikely to change.)
+	//
+	// ParseVersionConstraints allows some variations for convenience, but the
+	// return value from this function serves as the normalized form of a
+	// particular version constraint, which is the form we require in dependency
+	// lock files. Therefore the canonical forms produced here are a compatibility
+	// constraint for the dependency lock file parser.
 
 	var b strings.Builder
 	for i, sel := range spec {
@@ -385,7 +391,17 @@ func VersionConstraintsString(spec VersionConstraints) string {
 
 		if sel.Operator == constraints.OpGreaterThanOrEqualMinorOnly {
 			// The minor-pessimistic syntax uses only two version components.
-			fmt.Fprintf(&b, "%s.%s", sel.Boundary.Major, sel.Boundary.Minor)
+			if sel.Boundary.Minor.Unconstrained {
+				// The parser allows writing ~> 2, which ends up being
+				// represented in memory as ~> 2.* because the minor
+				// version is unconstrained, but that's not really any
+				// different than saying 2.0 and so we'll prefer that in
+				// our serialization in order to be clearer about how we
+				// understood the version constraint.
+				fmt.Fprintf(&b, "%s.0", sel.Boundary.Major)
+			} else {
+				fmt.Fprintf(&b, "%s.%s", sel.Boundary.Major, sel.Boundary.Minor)
+			}
 		} else {
 			fmt.Fprintf(&b, "%s.%s.%s", sel.Boundary.Major, sel.Boundary.Minor, sel.Boundary.Patch)
 		}
