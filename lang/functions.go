@@ -114,6 +114,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"sum":              funcs.SumFunc,
 			"timestamp":        funcs.TimestampFunc,
 			"timeadd":          stdlib.TimeAddFunc,
+			"timecmp":          funcs.TimeCmpFunc,
 			"title":            stdlib.TitleFunc,
 			"tostring":         funcs.MakeToFunc(cty.String),
 			"tonumber":         funcs.MakeToFunc(cty.Number),

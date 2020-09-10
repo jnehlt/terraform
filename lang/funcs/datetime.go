@@ -43,6 +43,36 @@ var TimeAddFunc = function.New(&function.Spec{
 	},
 })
 
+// TimeCmpFunc checks if first timestamp (RFC3339) is greater than second timestamp (RFC3339), returns true or false.
+var TimeCmpFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "compared_timestamp",
+			Type: cty.String,
+		},
+		{
+			Name: "comparing_timestamp",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.Bool),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		tscmpred, err := time.Parse(time.RFC3339, args[0].AsString())
+		if err != nil {
+			return cty.UnknownVal(cty.String), err
+		}
+		tscmping, err := time.Parse(time.RFC3339, args[1].AsString())
+		if err != nil {
+			return cty.UnknownVal(cty.String), err
+		}
+
+		if tscmpred.After(tscmping) {
+			return cty.BoolVal(true), nil
+		}
+		return cty.BoolVal(false), nil
+	},
+})
+
 // Timestamp returns a string representation of the current date and time.
 //
 // In the Terraform language, timestamps are conventionally represented as
@@ -67,4 +97,15 @@ func Timestamp() (cty.Value, error) {
 // of adding the given direction to the given timestamp.
 func TimeAdd(timestamp cty.Value, duration cty.Value) (cty.Value, error) {
 	return TimeAddFunc.Call([]cty.Value{timestamp, duration})
+}
+
+// TimeCmp compares two timestamps, returning true if first timestamp if greater than second one, otherwise false.
+//
+// In the Terraform language, timestamps are conventionally represented as
+// strings using RFC 3339 "Date and Time format" syntax. Timecmp requires
+// both timestamp arguments to be a string conforming to this syntax.
+//
+// The result is a boolean, which tells if first timestamp is greater than second one
+func TimeCmp(timestampCompared cty.Value, timestampComparing cty.Value) (cty.Value, error) {
+	return TimeCmpFunc.Call([]cty.Value{timestampCompared, timestampComparing})
 }
